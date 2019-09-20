@@ -27,6 +27,7 @@ module.exports = {
         allowNull: false,
       },
       provider: {
+        // Isso nao deveria ter sido criado na database
         type: Sequelize.BOOLEAN,
         defaultValue: false,
         allowNull: false,

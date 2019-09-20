@@ -64,7 +64,7 @@ class UserController {
     const user = await User.findByPk(req.userId);
 
     if (email !== user.email) {
-      const userVerify = await user.findOne({
+      const userVerify = await User.findOne({
         where: { email: req.body.email },
       });
 
@@ -88,3 +88,4 @@ class UserController {
 }
 
 export default new UserController();
+// terminado

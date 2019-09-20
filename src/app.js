@@ -1,3 +1,5 @@
+import 'dotenv/config';
+import path from 'path';
 import express from 'express';
 import routes from './routes';
 import './database';
@@ -13,6 +15,10 @@ class App {
 
   middlewares() {
     this.server.use(express.json());
+    this.server.use(
+      '/banners',
+      express.static(path.resolve(__dirname, '..', 'tmp', 'uploads'))
+    );
   }
 
   routes() {
