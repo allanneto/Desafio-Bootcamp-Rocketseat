@@ -1,6 +1,8 @@
 import * as Yup from 'yup';
-import { isBefore, subDays, parseISO } from 'date-fns';
+import { Op } from 'sequelize';
+import { isBefore, subDays, parseISO, startOfDay, endOfDay } from 'date-fns';
 import Meetup from '../models/meetup';
+import User from '../models/user';
 
 class MeetupController {
   async store(req, res) {
@@ -28,32 +30,31 @@ class MeetupController {
 
     const meetupDateSub = subDays(parseISO(date), 1);
 
-    console.log(meetupDateSub);
-
     if (isBefore(meetupDateSub, new Date())) {
       return res
         .status(400)
         .json({ error: 'You only can create a meetup with 1 day advance' });
     }
 
-    /**
-     * Check date avaiability
-     */
+    // /**
+    //  * Check date avaiability
+    //  */
 
-    const meetupDate = parseISO(date);
+    // const meetupDate = parseISO(date);
 
-    const dateAvaiable = await Meetup.findOne({
-      where: {
-        canceled_at: null,
-        date: meetupDate,
-      },
-    });
+    // const dateAvaiable = await Meetup.findOne({
+    //   where: {
+    //     date: meetupDate,
+    //   },
+    // });
 
-    if (dateAvaiable) {
-      return res.status(400).json({
-        error: 'Meetup date is not avaiable',
-      });
-    }
+    // if (dateAvaiable) {
+    //   return res.status(400).json({
+    //     error: 'Meetup date is not avaiable',
+    //   });
+    // }
+
+    // o codigo acima foi inutilizado pois nao a aplicação deve permitir a criação de 2 meetups na mesma hora.
 
     const meetup = await Meetup.create({
       creator_id: req.userId,
@@ -138,21 +139,42 @@ class MeetupController {
   }
 
   async index(req, res) {
-    const meetups = await Meetup.findAll({
-      where: { creator_id: req.userId },
+    const { page = 1 } = req.query;
+    const where = {};
+
+    if (req.query.date) {
+      const formatedDate = parseISO(req.query.date);
+      where.date = {
+        [Op.between]: [startOfDay(formatedDate), endOfDay(formatedDate)],
+      };
+    }
+
+    const meetup = await Meetup.findAll({
+      where,
       order: ['date'],
-      attributes: ['title', 'localization', 'date'],
+      attributes: ['id', 'title', 'localization', 'date'],
+      limit: 10,
+      offset: (page - 1) * 10,
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'name', 'email'],
+        },
+      ],
     });
 
     /**
      * Check if user don't have meetups
      */
 
-    if (meetups.length === 0) {
-      return res.json({ message: "You don't have meetups registered" });
+    if (meetup.length === 0) {
+      return res.json({ message: "This date don't have meetup registered" });
     }
 
-    return res.json(meetups);
+    // const meetupformatedDate = startOfDay(meetup.date);
+    // { log: `${formatedDate} --- ${meetupformatedDate}` }
+    return res.json(meetup);
   }
 
   async delete(req, res) {
